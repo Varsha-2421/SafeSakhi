@@ -1,29 +1,61 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-    <title>SafeSakhi</title>
-    <link href="style.css" rel="stylesheet" type="text/css" />
+  <meta charset="UTF-8">
+  <title>SafeSakhi</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #ffe6f0;
+      color: #333;
+      text-align: center;
+      padding: 30px;
+    }
+    h1 {
+      color: #c2185b;
+    }
+    button, a, select {
+      padding: 12px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 10px;
+      background-color: #d81b60;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    a {
+      display: block;
+    }
+  </style>
 </head>
-
 <body>
-    <header>
-        <h1>SafeSakhi</h1>
-        <p>SafeSakhi is a health and safety app for women. It helps girls and women take care of their health, track their periods, and stay safe in emergencies.</p>
-    </header>
 
-    <main>
-        <!-- Period tracking section has been removed -->
+  <h1>🌸 Welcome to SafeSakhi</h1>
+  <p id="safe-msg">Stay Safe and Healthy</p>
 
-        <section id="safety-features">
-            <h2>Safety Features</h2>
-            <p>Ensure safety with quick emergency contacts and tips.</p>
-        </section>
-    </main>
+  <button onclick="alert('🚨 SOS Alert Sent! Stay Calm & Seek Help.')">🚨 SOS Alert</button>
 
-    <script src="script.js"></script>
+  <a href="https://www.google.com/maps?q=My+Location" target="_blank">📍 Share My Location</a>
+
+  <a href="https://wa.me/91XXXXXXXXXX" target="_blank">💬 WhatsApp Trusted Contact</a>
+
+  <select onchange="changeLang(this.value)">
+    <option value="en">English</option>
+    <option value="ta">தமிழ்</option>
+  </select>
+
+  <script>
+    function changeLang(lang) {
+      if (lang === "ta") {
+        document.getElementById("safe-msg").innerText = "பாதுகாப்பாகவும் ஆரோக்கியமாகவும் இருங்கள்";
+      } else {
+        document.getElementById("safe-msg").innerText = "Stay Safe and Healthy";
+      }
+    }
+  </script>
+
 </body>
-
 </html>
