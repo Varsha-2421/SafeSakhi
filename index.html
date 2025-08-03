@@ -2,90 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SafeSakhi SOS</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeSakhi - Emergency SOS</title>
   <style>
     body {
-      text-align: center;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: Arial, sans-serif;
       background-color: #fff8f0;
-      padding: 50px;
+      text-align: center;
+      padding: 40px;
     }
     h1 {
-      color: #d10000;
+      color: #d63384;
     }
-    #sosBtn {
+    .sos-button {
       padding: 15px 30px;
-      font-size: 18px;
-      background-color: #ff0000;
+      background-color: red;
       color: white;
+      font-size: 18px;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       cursor: pointer;
+      margin: 20px 0;
     }
-    #sosBtn:hover {
-      background-color: #cc0000;
+    .whatsapp-button {
+      padding: 15px 30px;
+      background-color: green;
+      color: white;
+      font-size: 18px;
+      text-decoration: none;
+      border-radius: 8px;
+      display: inline-block;
+      margin: 10px 0;
     }
-    small {
-      color: gray;
+    .info-link {
+      margin-top: 30px;
+      font-size: 16px;
+    }
+    .info-link a {
+      color: #d63384;
+      font-weight: bold;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
 
-  <h1>🚨 SafeSakhi Emergency SOS</h1>
-  <p>Tap the button below to trigger an alert and notify via WhatsApp with your location.</p>
+  <h1>🚨 SafeSakhi Emergency Help</h1>
+  <p>Press the SOS button to trigger an alarm and send an alert via WhatsApp.</p>
 
-  <button onclick="handleSOS()" id="sosBtn">🚨 SOS Alert</button>
+  <!-- Alarm sound (hidden) -->
+  <audio id="alarmSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+    Your browser does not support the audio element.
+  </audio>
 
-  <p><small>Beep + WhatsApp message + location included</small></p>
+  <!-- SOS Button -->
+  <button class="sos-button" onclick="triggerAlarmAndWhatsApp()">🔊 SOS – Help Me!</button>
 
+  <!-- WhatsApp Direct Button -->
+  <a href="https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!" target="_blank" class="whatsapp-button">
+    📤 Send SOS via WhatsApp
+  </a>
+
+  <!-- Info Link -->
+  <div class="info-link">
+    <a href="how-it-works.html">📘 How SafeSakhi Works</a>
+  </div>
+
+  <!-- JavaScript -->
   <script>
-    function handleSOS() {
-      beepAlarm();
-      sendWhatsAppWithLocation();
-    }
+    function triggerAlarmAndWhatsApp() {
+      // Play the alarm sound
+      const alarm = document.getElementById("alarmSound");
+      alarm.play();
 
-    function beepAlarm() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-
-        oscillator.type = 'square';
-        oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
-        gainNode.gain.setValueAtTime(1, ctx.currentTime);
-
-        oscillator.start();
-        setTimeout(() => {
-          oscillator.stop();
-          ctx.close();
-        }, 3000); // Beep for 3 seconds
-      } catch (err) {
-        console.warn("Beep failed:", err);
-      }
-    }
-
-    function sendWhatsAppWithLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          const locationLink = `https://maps.google.com/?q=${lat},${lon}`;
-          const message = encodeURIComponent(`🚨 SafeSakhi Alert!\nI am in danger. Please help me!\n📍 Location: ${locationLink}`);
-          window.open(`https://wa.me/?text=${message}`, '_blank');
-        }, function(error) {
-          alert("Location access denied or unavailable.");
-          // fallback message
-          const fallbackMessage = encodeURIComponent("🚨 SafeSakhi Alert!\nI am in danger. Please help me!");
-          window.open(`https://wa.me/?text=${fallbackMessage}`, '_blank');
-        });
-      } else {
-        alert("Geolocation not supported on this device.");
-      }
+      // Open WhatsApp
+      window.open("https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!", "_blank");
     }
   </script>
 
