@@ -1,73 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SafeSakhi - Women's Safety</title>
+  <meta charset="UTF-8">
+  <title>SafeSakhi SOS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      background-color: #3a2f33;
-      color: white;
-      font-family: Arial, sans-serif;
       text-align: center;
-      padding: 40px;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fff8f0;
+      padding: 50px;
     }
-
     h1 {
-      color: #ff69b4;
+      color: #d10000;
     }
-
-    .btn {
-      display: block;
-      margin: 15px auto;
-      padding: 12px 24px;
-      background-color: #c2185b;
-      border: none;
+    #sosBtn {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #ff0000;
       color: white;
-      font-size: 16px;
+      border: none;
       border-radius: 10px;
-      text-decoration: none;
-      width: 80%;
-      max-width: 300px;
+      cursor: pointer;
     }
-
-    .btn:hover {
-      background-color: #ad1457;
+    #sosBtn:hover {
+      background-color: #cc0000;
     }
-
-    select {
-      margin-top: 15px;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 5px;
+    small {
+      color: gray;
     }
   </style>
 </head>
 <body>
 
-  <h1>🌸 Welcome to SafeSakhi</h1>
-  <p>Stay Safe and Healthy</p>
+  <h1>🚨 SafeSakhi Emergency SOS</h1>
+  <p>Tap the button below to trigger an alert and notify via WhatsApp.</p>
 
-  <!-- SOS Button -->
-  <button class="btn" onclick="sendSOS()">🚨 SOS Alert</button>
+  <button onclick="handleSOS()" id="sosBtn">🚨 SOS Alert</button>
 
-  <!-- Share Location -->
-  <a class="btn" href="https://www.google.com/maps" target="_blank">📍 Share My Location</a>
-
-  <!-- WhatsApp Emergency Contact -->
-  <a class="btn" href="https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!" target="_blank">📤 WhatsApp Trusted Contact</a>
-
-  <!-- Language Dropdown -->
-  <select>
-    <option>English</option>
-    <option>தமிழ்</option>
-    <option>हिन्दी</option>
-  </select>
+  <p><small>This will beep and open WhatsApp with an emergency message.</small></p>
 
   <script>
-    function sendSOS() {
-      alert("🚨 SOS Alert Sent! Stay Calm & Seek Help.");
-      window.open("https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!", "_blank");
+    function handleSOS() {
+      beepAlarm();
+      sendWhatsApp();
+    }
+
+    // 🔊 Play Emergency Beep Sound
+    function beepAlarm() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+        gainNode.gain.setValueAtTime(1, ctx.currentTime);
+
+        oscillator.start();
+        setTimeout(() => {
+          oscillator.stop();
+          ctx.close();
+        }, 3000); // Beep for 3 seconds
+      } catch (err) {
+        console.warn("Beep failed:", err);
+      }
+    }
+
+    // 💬 Send WhatsApp Message
+    function sendWhatsApp() {
+      const msg = encodeURIComponent("🚨 SafeSakhi Alert: I need help urgently!");
+      window.open(`https://wa.me/?text=${msg}`, "_blank");
     }
   </script>
 
