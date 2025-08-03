@@ -1,59 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SafeSakhi</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SafeSakhi - Women's Safety</title>
   <style>
     body {
+      background-color: #3a2f33;
+      color: white;
       font-family: Arial, sans-serif;
-      background: #ffe6f0;
-      color: #333;
       text-align: center;
-      padding: 30px;
+      padding: 40px;
     }
+
     h1 {
-      color: #c2185b;
+      color: #ff69b4;
     }
-    button, a, select {
-      padding: 12px 20px;
-      margin: 10px;
+
+    .btn {
+      display: block;
+      margin: 15px auto;
+      padding: 12px 24px;
+      background-color: #c2185b;
       border: none;
-      border-radius: 10px;
-      background-color: #d81b60;
       color: white;
       font-size: 16px;
-      cursor: pointer;
+      border-radius: 10px;
       text-decoration: none;
-      display: inline-block;
+      width: 80%;
+      max-width: 300px;
     }
-    a {
-      display: block;
+
+    .btn:hover {
+      background-color: #ad1457;
+    }
+
+    select {
+      margin-top: 15px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
 
   <h1>🌸 Welcome to SafeSakhi</h1>
-  <p id="safe-msg">Stay Safe and Healthy</p>
+  <p>Stay Safe and Healthy</p>
 
-  <button onclick="alert('🚨 SOS Alert Sent! Stay Calm & Seek Help.')">🚨 SOS Alert</button>
+  <!-- SOS Button -->
+  <button class="btn" onclick="sendSOS()">🚨 SOS Alert</button>
 
-  <a href="https://www.google.com/maps?q=My+Location" target="_blank">📍 Share My Location</a>
+  <!-- Share Location -->
+  <a class="btn" href="https://www.google.com/maps" target="_blank">📍 Share My Location</a>
 
-  <a href="https://wa.me/91XXXXXXXXXX" target="_blank">💬 WhatsApp Trusted Contact</a>
+  <!-- WhatsApp Emergency Contact -->
+  <a class="btn" href="https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!" target="_blank">📤 WhatsApp Trusted Contact</a>
 
-  <select onchange="changeLang(this.value)">
-    <option value="en">English</option>
-    <option value="ta">தமிழ்</option>
+  <!-- Language Dropdown -->
+  <select>
+    <option>English</option>
+    <option>தமிழ்</option>
+    <option>हिन्दी</option>
   </select>
 
   <script>
-    function changeLang(lang) {
-      if (lang === "ta") {
-        document.getElementById("safe-msg").innerText = "பாதுகாப்பாகவும் ஆரோக்கியமாகவும் இருங்கள்";
-      } else {
-        document.getElementById("safe-msg").innerText = "Stay Safe and Healthy";
-      }
+    function sendSOS() {
+      alert("🚨 SOS Alert Sent! Stay Calm & Seek Help.");
+      window.open("https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!", "_blank");
     }
   </script>
 
