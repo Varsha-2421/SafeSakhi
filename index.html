@@ -34,19 +34,18 @@
 <body>
 
   <h1>🚨 SafeSakhi Emergency SOS</h1>
-  <p>Tap the button below to trigger an alert and notify via WhatsApp.</p>
+  <p>Tap the button below to trigger an alert and notify via WhatsApp with your location.</p>
 
   <button onclick="handleSOS()" id="sosBtn">🚨 SOS Alert</button>
 
-  <p><small>This will beep and open WhatsApp with an emergency message.</small></p>
+  <p><small>Beep + WhatsApp message + location included</small></p>
 
   <script>
     function handleSOS() {
       beepAlarm();
-      sendWhatsApp();
+      sendWhatsAppWithLocation();
     }
 
-    // 🔊 Play Emergency Beep Sound
     function beepAlarm() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -70,10 +69,23 @@
       }
     }
 
-    // 💬 Send WhatsApp Message
-    function sendWhatsApp() {
-      const msg = encodeURIComponent("🚨 SafeSakhi Alert: I need help urgently!");
-      window.open(`https://wa.me/?text=${msg}`, "_blank");
+    function sendWhatsAppWithLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const locationLink = `https://maps.google.com/?q=${lat},${lon}`;
+          const message = encodeURIComponent(`🚨 SafeSakhi Alert!\nI am in danger. Please help me!\n📍 Location: ${locationLink}`);
+          window.open(`https://wa.me/?text=${message}`, '_blank');
+        }, function(error) {
+          alert("Location access denied or unavailable.");
+          // fallback message
+          const fallbackMessage = encodeURIComponent("🚨 SafeSakhi Alert!\nI am in danger. Please help me!");
+          window.open(`https://wa.me/?text=${fallbackMessage}`, '_blank');
+        });
+      } else {
+        alert("Geolocation not supported on this device.");
+      }
     }
   </script>
 
