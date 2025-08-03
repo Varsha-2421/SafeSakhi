@@ -2,76 +2,83 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SafeSakhi SOS</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeSakhi - Emergency SOS</title>
   <style>
     body {
-      background: #ffe6e6;
       font-family: Arial, sans-serif;
+      background-color: #fff8f0;
       text-align: center;
-      padding: 50px;
+      padding: 40px;
     }
     h1 {
-      color: #cc0000;
+      color: #d63384;
     }
-    button {
-      background: #cc0000;
+    .sos-button {
+      padding: 15px 30px;
+      background-color: red;
       color: white;
-      padding: 20px 40px;
-      font-size: 20px;
+      font-size: 18px;
       border: none;
-      border-radius: 15px;
-      margin: 20px;
+      border-radius: 8px;
       cursor: pointer;
+      margin: 20px 0;
     }
-    .info {
+    .whatsapp-button {
+      padding: 15px 30px;
+      background-color: green;
+      color: white;
+      font-size: 18px;
+      text-decoration: none;
+      border-radius: 8px;
+      display: inline-block;
+      margin: 10px 0;
+    }
+    .info-link {
       margin-top: 30px;
       font-size: 16px;
-      color: #333;
+    }
+    .info-link a {
+      color: #d63384;
+      font-weight: bold;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
-  <h1>🔴 SafeSakhi Emergency</h1>
 
-  <!-- SOS Button with beep -->
-  <button onclick="triggerSOS()">Press SOS</button>
+  <h1>🚨 SafeSakhi Emergency Help</h1>
+  <p>Press the SOS button to trigger an alarm and send an alert via WhatsApp.</p>
 
-  <!-- WhatsApp Button -->
-  <button onclick="sendWhatsApp()">Send WhatsApp Alert</button>
+  <!-- Alarm sound (hidden) -->
+  <audio id="alarmSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+    Your browser does not support the audio element.
+  </audio>
 
-  <!-- Location Info -->
-  <div class="info" id="location">📍 Location: Not available</div>
+  <!-- SOS Button -->
+  <button class="sos-button" onclick="triggerAlarmAndWhatsApp()">🔊 SOS – Help Me!</button>
 
-  <audio id="beepSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+  <!-- WhatsApp Direct Button -->
+  <a href="https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!" target="_blank" class="whatsapp-button">
+    📤 Send SOS via WhatsApp
+  </a>
 
+  <!-- Info Link -->
+  <div class="info-link">
+    <a href="how-it-works.html">📘 How SafeSakhi Works</a>
+  </div>
+
+  <!-- JavaScript -->
   <script>
-    // Beep + Location Display + Alert
-    function triggerSOS() {
-      const beep = document.getElementById("beepSound");
-      beep.play();
+    function triggerAlarmAndWhatsApp() {
+      // Play the alarm sound
+      const alarm = document.getElementById("alarmSound");
+      alarm.play();
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-          const lat = position.coords.latitude.toFixed(4);
-          const lon = position.coords.longitude.toFixed(4);
-          document.getElementById("location").innerText = `📍 Location: ${lat}, ${lon}`;
-          alert(`Emergency Alert Sent!\nLocation: ${lat}, ${lon}`);
-        }, function(error) {
-          alert("Location access denied!");
-        });
-      } else {
-        alert("Geolocation not supported");
-      }
-    }
-
-    // WhatsApp Emergency Message
-    function sendWhatsApp() {
-      const emergencyMessage = "⚠️ This is an emergency! Please help me. - SafeSakhi App";
-      const phoneNumber = "91XXXXXXXXXX"; // Replace with your emergency contact number (without +)
-      const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(emergencyMessage)}`;
-      window.open(url, '_blank');
+      // Open WhatsApp
+      window.open("https://wa.me/919999999999?text=Help%20me%2C%20I%20am%20in%20danger!", "_blank");
     }
   </script>
+
 </body>
 </html>
