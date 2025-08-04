@@ -1,152 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SafeSakhi AI – Emergency Help</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SafeSakhi – Emergency Help</title>
+  <link rel="icon" href="safesakhi-icon.png">
   <style>
     body {
-      background: linear-gradient(135deg, #fff0f5, #ffe6e6);
       font-family: 'Segoe UI', sans-serif;
+      background: #fff5f5;
       text-align: center;
       padding: 20px;
     }
     h1 {
-      color: #cc0033;
+      color: #c2185b;
     }
     button {
+      font-size: 20px;
       padding: 15px 30px;
-      margin: 10px;
-      font-size: 18px;
       border: none;
-      border-radius: 12px;
-      box-shadow: 0 5px 12px rgba(0,0,0,0.2);
-      transition: 0.2s;
+      border-radius: 8px;
+      margin: 10px;
+      color: white;
       cursor: pointer;
     }
     #sosButton {
-      background: red;
-      color: white;
+      background-color: #d32f2f;
     }
     #whatsappButton {
-      background: green;
-      color: white;
+      background-color: #388e3c;
     }
-    .blink {
-      animation: blink-animation 1s steps(2, start) infinite;
-    }
-    @keyframes blink-animation {
-      to { background-color: #ffcccc; }
+    #howItWorks {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #ad1457;
     }
   </style>
 </head>
 <body>
 
-  <h1>🚨 SafeSakhi AI – Emergency Help</h1>
-  <p>Say "Help me", scream, shake phone, or press SOS.</p>
+  <h1>🚨 SafeSakhi Emergency Help</h1>
+  <p>Press the SOS button or say <strong>"Help me"</strong> to trigger alert.</p>
 
   <button id="sosButton">📢 SOS – Help Me!</button><br>
   <button id="whatsappButton">📲 Send SOS via WhatsApp</button>
-  <p id="status" style="margin-top:20px;"></p>
 
-  <audio id="alarmSound">
-    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
-  </audio>
+  <p id="howItWorks">📘 How SafeSakhi Works</p>
 
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/sound"></script>
+  <audio id="beepSound" src="https://www.soundjay.com/buttons/beep-07.wav" preload="auto"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/sound@0.8/dist/teachablemachine-sound.min.js"></script>
 
   <script>
-    const sosButton = document.getElementById("sosButton");
-    const whatsappButton = document.getElementById("whatsappButton");
-    const alarmSound = document.getElementById("alarmSound");
-    const status = document.getElementById("status");
+    let locationText = '';
+    let beepSound = document.getElementById("beepSound");
 
-    let latitude = "", longitude = "";
-
-    // LOCATION
-    navigator.geolocation.getCurrentPosition(position => {
-      latitude = position.coords.latitude;
-      longitude = position.coords.longitude;
-    });
-
-    // SOS
-    function triggerSOS(reason = "Manual") {
-      alarmSound.play();
-      document.body.classList.add("blink");
-      status.innerText = `🚨 SOS Triggered (${reason})!`;
-
-      setTimeout(() => {
-        document.body.classList.remove("blink");
-        status.innerText = "";
-      }, 10000);
+    // Get location
+    function fetchLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          locationText = `My location: https://www.google.com/maps?q=${lat},${lon}`;
+        });
+      } else {
+        locationText = "Location not available.";
+      }
     }
 
-    sosButton.addEventListener("click", () => triggerSOS("Button"));
+    fetchLocation();
 
-    // WhatsApp
-    whatsappButton.addEventListener("click", () => {
-      if (!latitude || !longitude) {
-        alert("Location not detected yet!");
-        return;
-      }
-      const msg = `🚨 Emergency! I need help.\n📍 Location: https://maps.google.com/?q=${latitude},${longitude}`;
-      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      window.open(url, '_blank');
-    });
-
-    // SHAKE detection
-    let lastX = null, lastY = null, lastZ = null;
-    let threshold = 15;
-    window.addEventListener("devicemotion", (event) => {
-      let { x, y, z } = event.accelerationIncludingGravity;
-      if (lastX !== null) {
-        let dx = Math.abs(lastX - x);
-        let dy = Math.abs(lastY - y);
-        let dz = Math.abs(lastZ - z);
-        if (dx + dy + dz > threshold) {
-          triggerSOS("Shake");
+    // SOS Alert
+    document.getElementById("sosButton").addEventListener("click", function () {
+      beepSound.play();
+      alert("SOS Triggered! Sending alert...");
+      try {
+        // Flashlight (only works in Android app with WebView + JSInterface)
+        if (navigator.userAgent.includes("Android")) {
+          Android.toggleFlashlight(); // You must define this in Android WebView
         }
-      }
-      lastX = x; lastY = y; lastZ = z;
+      } catch (e) {}
     });
 
-    // VOICE COMMAND (say "help me")
-    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = "en-US";
+    // WhatsApp SOS
+    document.getElementById("whatsappButton").addEventListener("click", function () {
+      const message = encodeURIComponent("🚨 Emergency! I need help. " + locationText);
+      window.open("https://wa.me/?text=" + message, "_blank");
+    });
 
-    recognition.onresult = function(e) {
-      const transcript = e.results[e.results.length - 1][0].transcript.trim().toLowerCase();
-      if (transcript.includes("help me") || transcript.includes("save me")) {
-        triggerSOS("Voice Command");
-      }
-    };
-    recognition.start();
+    // Voice Command (Web Speech API)
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.lang = 'en-US';
+      recognition.start();
 
-    // TEACHABLE MACHINE (Scream Detection)
-    const URL = "PASTE_YOUR_MODEL_URL_HERE";
-    let model, soundModel;
+      recognition.onresult = function (event) {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const transcript = event.results[i][0].transcript.trim().toLowerCase();
+            if (transcript.includes("help me")) {
+              document.getElementById("sosButton").click();
+            }
+          }
+        }
+      };
+    }
 
-    async function loadModel() {
-      const checkpointURL = URL + "model.json";
+    // Teachable Machine Scream Detection
+    const URL = "https://teachablemachine.withgoogle.com/models/YOUR_MODEL_URL/";
+    let model, mic;
+
+    async function initTeachable() {
+      const modelURL = URL + "model.json";
       const metadataURL = URL + "metadata.json";
-      soundModel = await tmSound.load(checkpointURL, metadataURL);
-      soundModel.listen(result => {
-        const screamProb = result[1].probability; // Class 1 = scream
-        if (screamProb > 0.95) {
-          triggerSOS("Scream Detected");
-        }
-      }, {
-        probabilityThreshold: 0.9,
-        overlapFactor: 0.5
-      });
+      model = await tmSound.load(modelURL, metadataURL);
+      mic = new tmSound.Audio();
+      await mic.setup();
+      loop();
     }
 
-    loadModel();
-  </script>
-
-</body>
-</html>
+    async function loop() {
+      await mic.play();
+      setInterval(async () => {
+        const prediction = await model.predict(mic);
+        const scream = prediction.find(p => p.className === "Scream" && p.probability > 0
