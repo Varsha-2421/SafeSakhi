@@ -1,103 +1,233 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SafeSakhi — SOS</title>
-<style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff3f3; }
-    h1 { color: #d60000; }
-    button { padding: 15px 25px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; }
-    #sosBtn { background: #d60000; color: white; }
-    #stopBtn { background: #555; color: white; display: none; }
-    .status { margin-top: 15px; font-weight: bold; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SafeSakhi — SOS</title>
+  <style>
+    body{font-family:system-ui,Arial; background:#fff6f6; margin:0; padding:22px; display:flex; justify-content:center}
+    .card{width:100%;max-width:420px;background:#fff;border-radius:14px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+    h1{margin:0 0 6px;color:#c62828}
+    p.lead{margin:0 0 16px;color:#555}
+    .btn{width:100%;padding:14px;border-radius:10px;border:none;font-size:16px;cursor:pointer;margin:8px 0}
+    .btn-red{background:#d32f2f;color:#fff}
+    .btn-dark{background:#333;color:#fff}
+    .row{display:flex;gap:8px;margin-top:12px}
+    .chip{flex:1;background:#f4f4f4;padding:10px;border-radius:10px;font-size:13px;text-align:center}
+    footer{font-size:12px;color:#666;margin-top:12px}
+  </style>
 </head>
 <body>
+  <div class="card">
+    <h1>🚨 SafeSakhi — SOS</h1>
+    <p class="lead">Tap <strong>Activate SOS</strong> once. Alarm will play, mic will record, flashlight will attempt to turn on, and WhatsApp will open with location.</p>
 
-<h1>🚨 SafeSakhi — SOS</h1>
-<p>Tap Activate SOS to play alarm, send location, start recording, flashlight, and WhatsApp alert.</p>
+    <button id="activateBtn" class="btn btn-red">🚨 Activate SOS</button>
+    <button id="stopBtn" class="btn btn-dark" style="display:none">🛑 Stop SOS</button>
 
-<button id="sosBtn">🚨 Activate SOS</button>
-<button id="stopBtn">🛑 Stop SOS</button>
+    <div class="row">
+      <div id="sosChip" class="chip">SOS: Inactive</div>
+      <div id="recChip" class="chip">Recorder: Idle</div>
+    </div>
 
-<div class="status" id="statusMsg">Idle</div>
+    <footer>Best on Chrome Android. Place <code>alarm.mp3</code> in same folder.</footer>
+  </div>
 
 <script>
-let alarmSound, mediaRecorder, chunks = [], track;
-let isRecording = false;
+/* ====== CONFIG ====== */
+const ALARM_FILE = "alarm.mp3"; // make sure this file exists next to index.html
+const WA_RECIPIENTS = ""; // optional: "919812345678,919876543210" (no +). Leave empty to let user pick
 
-// Start SOS
-document.getElementById("sosBtn").addEventListener("click", async () => {
-    document.getElementById("statusMsg").innerText = "SOS Activated!";
-    document.getElementById("sosBtn").style.display = "none";
-    document.getElementById("stopBtn").style.display = "inline-block";
+/* ====== STATE ====== */
+let alarmAudio = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let cameraStream = null;
+let micStream = null;
+let isActive = false;
 
-    // Play Alarm Immediately
+/* ====== UI ====== */
+const activateBtn = document.getElementById("activateBtn");
+const stopBtn = document.getElementById("stopBtn");
+const sosChip = document.getElementById("sosChip");
+const recChip = document.getElementById("recChip");
+
+function setSosLabel(active){
+  sosChip.textContent = active ? "SOS: Active" : "SOS: Inactive";
+}
+function setRecLabel(recording){
+  recChip.textContent = recording ? "Recorder: Recording" : "Recorder: Idle";
+}
+
+/* ====== SAFE HELPERS ====== */
+function toast(msg){
+  // minimal toast fallback
+  console.log("SafeSakhi:", msg);
+  // use alert sparingly
+  // alert(msg);
+}
+
+/* ====== MAIN ACTIVATION ====== */
+activateBtn.addEventListener('click', async function onActivate(e){
+  if (isActive) return;
+  isActive = true;
+  setSosLabel(true);
+  activateBtn.style.display = "none";
+  stopBtn.style.display = "block";
+
+  // 1) Play alarm immediately (direct user click -> browser should allow)
+  try {
+    alarmAudio = new Audio(ALARM_FILE);
+    alarmAudio.loop = true;
+    alarmAudio.preload = "auto";
+    // Attempt to play immediately. Await ensures we start before other async work.
+    await alarmAudio.play();
+    toast("Alarm started");
+  } catch(err){
+    console.error("Alarm play failed:", err);
+    alert("Unable to play alarm. Please ensure phone is not in silent mode and reload the page.");
+    // continue with other actions even if alarm fails
+  }
+
+  // 2) Start microphone recording (in background)
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(micStream);
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = ev => { if (ev.data && ev.data.size) recordedChunks.push(ev.data); };
+    mediaRecorder.onstop = () => {
+      setRecLabel(false);
+      // Optional: create download link for user
+      const blob = new Blob(recordedChunks, { type: recordedChunks[0]?.type || "audio/webm" });
+      const url = URL.createObjectURL(blob);
+      // add link to page (safe, non-intrusive)
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `safesakhi-recording-${Date.now()}.webm`;
+      a.textContent = "Download last recording";
+      a.style.display = "block";
+      document.querySelector('.card').appendChild(a);
+    };
+    mediaRecorder.start();
+    setRecLabel(true);
+    toast("Recording started");
+  } catch(err){
+    console.warn("Microphone access denied or not available:", err);
+    setRecLabel(false);
+  }
+
+  // 3) Try to turn on flashlight (torch) - best-effort
+  (async function tryTorch(){
     try {
-        alarmSound = new Audio("alarm.mp3");
-        alarmSound.loop = true;
-        await alarmSound.play();
-    } catch (err) {
-        alert("Please turn off silent mode and tap again.");
-        console.error(err);
-    }
-
-    // Fetch Location and Send WhatsApp
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            let lat = pos.coords.latitude.toFixed(5);
-            let lon = pos.coords.longitude.toFixed(5);
-            let mapUrl = `https://maps.google.com/?q=${lat},${lon}`;
-            let message = encodeURIComponent(`🚨 SOS! I need help.\nMy location: ${mapUrl}`);
-            window.open(`https://wa.me/?text=${message}`, "_blank");
-        });
-    }
-
-    // Start Audio Recording
-    try {
-        let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-        mediaRecorder.start();
-        isRecording = true;
-    } catch (err) {
-        console.error("Mic access error", err);
-    }
-
-    // Turn On Flashlight (if supported)
-    try {
-        let camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        track = camStream.getVideoTracks()[0];
+      // request camera with environment facing mode
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+      const track = cameraStream.getVideoTracks()[0];
+      const cap = track.getCapabilities ? track.getCapabilities() : {};
+      if (cap.torch) {
         await track.applyConstraints({ advanced: [{ torch: true }] });
-    } catch (err) {
-        console.warn("Torch not supported", err);
+        toast("Torch enabled");
+      } else {
+        // many devices don't report torch capability; try applyConstraints anyway (some browsers accept it)
+        try {
+          await track.applyConstraints({ advanced: [{ torch: true }] });
+          toast("Torch attempted (may or may not be on)");
+        } catch(e) {
+          // not supported
+          console.warn("Torch not supported/applyConstraints failed:", e);
+          track.stop();
+          cameraStream = null;
+        }
+      }
+    } catch(err){
+      console.warn("Torch/camera not available or permission denied:", err);
+      if(cameraStream){
+        cameraStream.getTracks().forEach(t=>t.stop());
+        cameraStream = null;
+      }
     }
+  })();
 
-    // Shake-to-Activate
-    if (window.DeviceMotionEvent) {
-        let lastShake = Date.now();
-        window.addEventListener("devicemotion", e => {
-            let acc = e.accelerationIncludingGravity;
-            let strength = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
-            if (strength > 30 && Date.now() - lastShake > 1000) {
-                lastShake = Date.now();
-                document.getElementById("sosBtn").click();
-            }
-        });
+  // 4) Fetch geolocation and then open WhatsApp with message
+  (function sendWhatsAppWithLocation(){
+    if (!navigator.geolocation){
+      openWhatsAppWithMessage("🚨 SOS! I need help. (Location not available)");
+      return;
     }
+    // Use getCurrentPosition to get a fresh location
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const maps = `https://maps.google.com/?q=${lat},${lon}`;
+      const message = `🚨 SOS! I need help.\nMy location: ${maps}\nSent from SafeSakhi (web)`;
+      openWhatsAppWithMessage(message);
+    }, err => {
+      console.warn("Geolocation error:", err);
+      openWhatsAppWithMessage("🚨 SOS! I need help. (Could not fetch location)");
+    }, { enableHighAccuracy:true, timeout:10000 });
+  })();
+
+}); // end activate
+
+/* ====== STOP ALL ====== */
+stopBtn.addEventListener('click', function onStop(){
+  // stop alarm
+  if (alarmAudio){
+    alarmAudio.pause();
+    alarmAudio.currentTime = 0;
+    alarmAudio = null;
+  }
+  // stop recording
+  try {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
+    if (micStream){
+      micStream.getTracks().forEach(t=>t.stop());
+      micStream = null;
+    }
+  } catch(e){ console.warn("Error stopping recorder:", e); }
+
+  // stop camera torch
+  try {
+    if (cameraStream){
+      cameraStream.getTracks().forEach(t=>t.stop());
+      cameraStream = null;
+    }
+  } catch(e){ console.warn("Error stopping camera:", e); }
+
+  // UI
+  isActive = false;
+  setSosLabel(false);
+  setRecLabel(false);
+  activateBtn.style.display = "block";
+  stopBtn.style.display = "none";
+  toast("SOS stopped");
 });
 
-// Stop SOS
-document.getElementById("stopBtn").addEventListener("click", () => {
-    document.getElementById("statusMsg").innerText = "SOS Stopped";
-    document.getElementById("sosBtn").style.display = "inline-block";
-    document.getElementById("stopBtn").style.display = "none";
+/* ====== WhatsApp helper ====== */
+function openWhatsAppWithMessage(message){
+  const encoded = encodeURIComponent(message);
+  let url;
+  if (WA_RECIPIENTS && WA_RECIPIENTS.trim() !== ""){
+    // open to first recipient (wa.me supports only one)
+    const first = WA_RECIPIENTS.split(",")[0].trim();
+    url = `https://wa.me/${first}?text=${encoded}`;
+  } else {
+    // let user pick contacts (mobile will open app)
+    url = `https://wa.me/?text=${encoded}`;
+  }
+  // Open in new tab/window; mobile will switch to WhatsApp app if installed
+  window.open(url, "_blank");
+}
 
-    if (alarmSound) { alarmSound.pause(); alarmSound.currentTime = 0; }
-    if (isRecording && mediaRecorder) { mediaRecorder.stop(); isRecording = false; }
-    if (track) { track.stop(); }
-});
+/* ====== helpful hint: resume audio on user gesture if needed ====== */
+// Some browsers mute audio until a user gesture. If user presses anywhere after page load, we keep audio unlocked.
+document.addEventListener('click', () => {
+  if (alarmAudio && alarmAudio.paused && isActive) {
+    alarmAudio.play().catch(()=>{});
+  }
+}, { once: true });
+
 </script>
 </body>
-</html>
+    </html>
