@@ -3,77 +3,125 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SafeSakhi — Offline SOS</title>
+<title>SafeSakhi — SOS</title>
 <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #fff3f3; padding: 20px; }
-    h1 { color: #d60000; }
-    button { padding: 15px 25px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; margin: 10px; }
-    #sosBtn { background: #d60000; color: white; }
-    #stopBtn { background: #555; color: white; display: none; }
-    .status { margin-top: 15px; font-weight: bold; }
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+        background-color: #fff5f5;
+    }
+    h1 {
+        color: red;
+    }
+    button {
+        padding: 15px;
+        font-size: 18px;
+        margin: 10px;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        width: 80%;
+    }
+    #activate { background-color: #d32f2f; }
+    #stop { background-color: #424242; }
+    #flash { background-color: #fbc02d; color: black; }
+    #share { background-color: #e57373; }
+    .status {
+        margin-top: 15px;
+        text-align: left;
+    }
 </style>
 </head>
 <body>
 
 <h1>🚨 SafeSakhi — SOS</h1>
-<p>Tap Activate SOS to play alarm, turn on flashlight, get location, and send SMS.</p>
+<p>Tap <b>Activate SOS</b> to play alarm, fetch location, and open WhatsApp with a prefilled emergency message.</p>
 
-<button id="sosBtn">🚨 Activate SOS</button>
-<button id="stopBtn">🛑 Stop SOS</button>
+<button id="activate">📢 Activate SOS</button>
+<button id="stop">⛔ Stop Alarm</button>
+<button id="flash">💡 Flashlight Blink</button>
+<button id="share">📍 Share Location Only</button>
 
-<div class="status" id="statusMsg">Idle</div>
+<div class="status">
+    📌 Location: <span id="locationStatus">Not fetched</span><br>
+    🔴 SOS: <span id="sosStatus">Inactive</span><br>
+</div>
+
+<audio id="alarmSound" loop>
+    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA... (BASE64 ALARM SOUND HERE) ..." type="audio/mp3">
+</audio>
 
 <script>
-let alarmSound, track;
+let alarm = document.getElementById('alarmSound');
+let blinkInterval;
+let sosActive = false;
 
-// Start SOS
-document.getElementById("sosBtn").addEventListener("click", async () => {
-    document.getElementById("statusMsg").innerText = "SOS Activated!";
-    document.getElementById("sosBtn").style.display = "none";
-    document.getElementById("stopBtn").style.display = "inline-block";
+// Play alarm
+function startAlarm() {
+    alarm.play().catch(e => console.log("Sound error:", e));
+}
 
-    // Play alarm sound
+// Stop alarm
+function stopAlarm() {
+    alarm.pause();
+    alarm.currentTime = 0;
+    clearInterval(blinkInterval);
+    turnFlashlight(false);
+    sosActive = false;
+    document.getElementById("sosStatus").innerText = "Inactive";
+}
+
+// Flashlight control
+async function turnFlashlight(on) {
     try {
-        alarmSound = new Audio("alarm.mp3");
-        alarmSound.loop = true;
-        await alarmSound.play();
-    } catch (err) {
-        alert("Turn off silent mode & tap again to allow sound.");
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const track = stream.getVideoTracks()[0];
+        await track.applyConstraints({ advanced: [{ torch: on }] });
+    } catch (e) {
+        console.log("Flashlight error:", e);
     }
+}
 
-    // Turn on flashlight
-    try {
-        let camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        track = camStream.getVideoTracks()[0];
-        await track.applyConstraints({ advanced: [{ torch: true }] });
-    } catch (err) {
-        console.warn("Flashlight not supported", err);
-    }
+function blinkFlashlight() {
+    let on = false;
+    blinkInterval = setInterval(() => {
+        on = !on;
+        turnFlashlight(on);
+    }, 500);
+}
 
-    // Get location and send SMS
+// Location + WhatsApp
+function sendLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
-            let lat = pos.coords.latitude.toFixed(5);
-            let lon = pos.coords.longitude.toFixed(5);
-            let message = encodeURIComponent(`Help me! I am in danger. My location: https://maps.google.com/?q=${lat},${lon}`);
-            // Replace +911234567890 with your emergency number
-            window.location.href = `sms:+911234567890?body=${message}`;
+            let lat = pos.coords.latitude;
+            let lon = pos.coords.longitude;
+            document.getElementById("locationStatus").innerText = `${lat}, ${lon}`;
+            let message = `🚨 HELP! I am in danger. My location: https://maps.google.com/?q=${lat},${lon}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
         }, err => {
-            alert("Location access denied, SMS will not have coordinates.");
-            window.location.href = `sms:+911234567890?body=${encodeURIComponent("Help me! I am in danger.")}`;
+            alert("Location access denied.");
         });
+    } else {
+        alert("Geolocation not supported.");
     }
+}
+
+// Button actions
+document.getElementById("activate").addEventListener("click", () => {
+    startAlarm();
+    blinkFlashlight();
+    sendLocation();
+    sosActive = true;
+    document.getElementById("sosStatus").innerText = "Active";
 });
 
-// Stop SOS
-document.getElementById("stopBtn").addEventListener("click", () => {
-    document.getElementById("statusMsg").innerText = "SOS Stopped";
-    document.getElementById("sosBtn").style.display = "inline-block";
-    document.getElementById("stopBtn").style.display = "none";
-
-    if (alarmSound) { alarmSound.pause(); alarmSound.currentTime = 0; }
-    if (track) { track.stop(); }
-});
+document.getElementById("stop").addEventListener("click", stopAlarm);
+document.getElementById("flash").addEventListener("click", blinkFlashlight);
+document.getElementById("share").addEventListener("click", sendLocation);
 </script>
+
 </body>
-</html>
+    </html>
