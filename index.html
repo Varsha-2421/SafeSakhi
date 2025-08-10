@@ -1,127 +1,239 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SafeSakhi — SOS</title>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        padding: 20px;
-        background-color: #fff5f5;
-    }
-    h1 {
-        color: red;
-    }
-    button {
-        padding: 15px;
-        font-size: 18px;
-        margin: 10px;
-        border: none;
-        border-radius: 8px;
-        color: white;
-        cursor: pointer;
-        width: 80%;
-    }
-    #activate { background-color: #d32f2f; }
-    #stop { background-color: #424242; }
-    #flash { background-color: #fbc02d; color: black; }
-    #share { background-color: #e57373; }
-    .status {
-        margin-top: 15px;
-        text-align: left;
-    }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SafeSakhi — SOS</title>
+  <style>
+    :root{--red:#d32f2f;--dark:#333;--yellow:#f4a300}
+    body{font-family:Inter,Arial,Helvetica,sans-serif;background:#fff6f6;margin:0;padding:22px;display:flex;justify-content:center}
+    .card{width:100%;max-width:440px;background:#fff;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+    h1{margin:0;color:var(--red);font-size:20px}
+    p.lead{color:#666;margin:8px 0 18px}
+    .btn{width:100%;padding:14px;border-radius:12px;border:none;font-size:16px;cursor:pointer;margin:10px 0}
+    .btn-red{background:var(--red);color:#fff}
+    .btn-dark{background:var(--dark);color:#fff}
+    .btn-yellow{background:var(--yellow);color:#222}
+    .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .chip{flex:1;background:#f4f4f4;padding:10px;border-radius:12px;font-size:14px;text-align:center}
+    small{color:#888;display:block;margin-top:10px}
+  </style>
 </head>
 <body>
+  <div class="card">
+    <h1>🚨 SafeSakhi — SOS</h1>
+    <p class="lead">Tap <strong>Activate SOS</strong> to play alarm, fetch location, blink flashlight, and open WhatsApp with a prefilled emergency message.</p>
 
-<h1>🚨 SafeSakhi — SOS</h1>
-<p>Tap <b>Activate SOS</b> to play alarm, fetch location, and open WhatsApp with a prefilled emergency message.</p>
+    <button id="activateBtn" class="btn btn-red">📢 Activate SOS</button>
+    <button id="stopBtn" class="btn btn-dark" style="display:none">⛔ Stop Alarm</button>
+    <button id="blinkBtn" class="btn btn-yellow">💡 Flashlight Blink</button>
+    <button id="shareBtn" class="btn" style="background:#eee">📍 Share Location Only</button>
 
-<button id="activate">📢 Activate SOS</button>
-<button id="stop">⛔ Stop Alarm</button>
-<button id="flash">💡 Flashlight Blink</button>
-<button id="share">📍 Share Location Only</button>
+    <div class="row" style="margin-top:14px">
+      <div id="locChip" class="chip">📌 Location: Not fetched</div>
+      <div id="sosChip" class="chip">🔴 SOS: Inactive</div>
+    </div>
 
-<div class="status">
-    📌 Location: <span id="locationStatus">Not fetched</span><br>
-    🔴 SOS: <span id="sosStatus">Inactive</span><br>
-</div>
-
-<audio id="alarmSound" loop>
-    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA... (BASE64 ALARM SOUND HERE) ..." type="audio/mp3">
-</audio>
+    <small>Best in Chrome on Android. Grant location/camera permission when prompted. Increase media volume before testing.</small>
+  </div>
 
 <script>
-let alarm = document.getElementById('alarmSound');
-let blinkInterval;
+/* -------------------------
+  SafeSakhi — index.html
+  - WebAudio siren (no MP3)
+  - Geolocation -> WhatsApp
+  - Torch blink (gets camera permission only when used)
+  - All started from a single tap
+---------------------------*/
+
+const activateBtn = document.getElementById('activateBtn');
+const stopBtn     = document.getElementById('stopBtn');
+const blinkBtn    = document.getElementById('blinkBtn');
+const shareBtn    = document.getElementById('shareBtn');
+const locChip     = document.getElementById('locChip');
+const sosChip     = document.getElementById('sosChip');
+
+let audioCtx = null;
+let sirenOsc = null;
+let sirenGain = null;
+let sirenInterval = null;
+let torchStream = null;
+let torchTrack = null;
+let blinkInterval = null;
 let sosActive = false;
 
-// Play alarm
-function startAlarm() {
-    alarm.play().catch(e => console.log("Sound error:", e));
+// Utility: resume AudioContext on user gesture
+async function ensureAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    try { await audioCtx.resume(); } catch(e){ console.warn("Audio resume error", e); }
+  }
 }
 
-// Stop alarm
-function stopAlarm() {
-    alarm.pause();
-    alarm.currentTime = 0;
-    clearInterval(blinkInterval);
-    turnFlashlight(false);
-    sosActive = false;
-    document.getElementById("sosStatus").innerText = "Inactive";
-}
+// Create a siren-like sound by sweeping frequency and alternating tones
+async function startSiren() {
+  await ensureAudioCtx();
+  // stop if already running
+  stopSiren();
 
-// Flashlight control
-async function turnFlashlight(on) {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        const track = stream.getVideoTracks()[0];
-        await track.applyConstraints({ advanced: [{ torch: on }] });
-    } catch (e) {
-        console.log("Flashlight error:", e);
-    }
-}
+  sirenOsc = audioCtx.createOscillator();
+  sirenGain = audioCtx.createGain();
+  sirenGain.gain.value = 0.02; // moderate volume — user can raise media volume
+  sirenOsc.type = 'sawtooth';
 
-function blinkFlashlight() {
-    let on = false;
-    blinkInterval = setInterval(() => {
-        on = !on;
-        turnFlashlight(on);
-    }, 500);
-}
+  sirenOsc.connect(sirenGain);
+  sirenGain.connect(audioCtx.destination);
 
-// Location + WhatsApp
-function sendLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            let lat = pos.coords.latitude;
-            let lon = pos.coords.longitude;
-            document.getElementById("locationStatus").innerText = `${lat}, ${lon}`;
-            let message = `🚨 HELP! I am in danger. My location: https://maps.google.com/?q=${lat},${lon}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-        }, err => {
-            alert("Location access denied.");
-        });
+  // frequency sweep loop for siren effect
+  let low = 550, high = 1200;
+  let direction = 1;
+  sirenOsc.frequency.value = low;
+  sirenOsc.start();
+
+  sirenInterval = setInterval(() => {
+    // simple linear direction toggle sweep
+    if (direction === 1) {
+      sirenOsc.frequency.linearRampToValueAtTime(high, audioCtx.currentTime + 0.45);
+      direction = -1;
     } else {
-        alert("Geolocation not supported.");
+      sirenOsc.frequency.linearRampToValueAtTime(low, audioCtx.currentTime + 0.45);
+      direction = 1;
     }
+  }, 450);
+
+  // small rhythmic beep overlay (optional)
+  // Keep it simple for reliability across phones
 }
 
-// Button actions
-document.getElementById("activate").addEventListener("click", () => {
-    startAlarm();
-    blinkFlashlight();
-    sendLocation();
-    sosActive = true;
-    document.getElementById("sosStatus").innerText = "Active";
+function stopSiren() {
+  if (sirenInterval) { clearInterval(sirenInterval); sirenInterval = null; }
+  if (sirenOsc) {
+    try { sirenOsc.stop(); } catch(e){}
+    try { sirenOsc.disconnect(); } catch(e){}
+  }
+  if (sirenGain) {
+    try { sirenGain.disconnect(); } catch(e){}
+  }
+  sirenOsc = null;
+  sirenGain = null;
+}
+
+// Torch (flashlight) control: best-effort
+async function startTorchBlink() {
+  // request camera only when blinking (reduces early prompt)
+  try {
+    if (!torchStream) {
+      torchStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+      torchTrack = torchStream.getVideoTracks()[0];
+    }
+    let on = false;
+    blinkInterval = setInterval(async () => {
+      if (!torchTrack) return;
+      on = !on;
+      try {
+        await torchTrack.applyConstraints({ advanced: [{ torch: on }] });
+      } catch (e) {
+        // Some devices require stopping track and re-requesting or don't support torch
+        console.warn("Torch applyConstraints failed", e);
+      }
+    }, 500);
+  } catch (err) {
+    console.warn("Torch access failed or not supported", err);
+    alert("Flashlight not supported on this device/browser.");
+    stopTorchBlink();
+  }
+}
+
+function stopTorchBlink() {
+  if (blinkInterval) { clearInterval(blinkInterval); blinkInterval = null; }
+  if (torchTrack) {
+    try { torchTrack.applyConstraints({ advanced: [{ torch: false }] }).catch(()=>{}); } catch(e){}
+    try { torchTrack.stop(); } catch(e){}
+    torchTrack = null;
+  }
+  if (torchStream) {
+    try { torchStream.getTracks().forEach(t => t.stop()); } catch(e){}
+    torchStream = null;
+  }
+}
+
+// Geolocation + WhatsApp
+function fetchLocationAndShare() {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported by this browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(position => {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+    locChip.textContent = `📌 Location: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    const mapsUrl = `https://maps.google.com/?q=${lat},${lon}`;
+    const message = `🚨 HELP! I am in danger. My location: ${mapsUrl}`;
+    // open WhatsApp chooser (user picks recipients)
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    // open after a tiny delay so audio already started
+    setTimeout(() => window.open(waUrl, '_blank'), 300);
+  }, err => {
+    console.warn("Geolocation error:", err);
+    alert("Unable to fetch location. Check location permission and try again.");
+  }, {enableHighAccuracy: true, timeout: 10000});
+}
+
+// Main activation: play siren, fetch location, blink torch
+activateBtn.addEventListener('click', async () => {
+  if (sosActive) return;
+  sosActive = true;
+  sosChip.textContent = '🟢 SOS: Active';
+  activateBtn.style.display = 'none';
+  stopBtn.style.display = 'block';
+
+  // Start siren (user gesture ensures audio allowed)
+  await startSiren();
+
+  // Start torch blinking
+  startTorchBlink();
+
+  // Fetch location and open WhatsApp with message
+  fetchLocationAndShare();
 });
 
-document.getElementById("stop").addEventListener("click", stopAlarm);
-document.getElementById("flash").addEventListener("click", blinkFlashlight);
-document.getElementById("share").addEventListener("click", sendLocation);
-</script>
+// Stop everything
+stopBtn.addEventListener('click', () => {
+  sosActive = false;
+  sosChip.textContent = '🔴 SOS: Inactive';
+  activateBtn.style.display = 'block';
+  stopBtn.style.display = 'none';
+  stopSiren();
+  stopTorchBlink();
+});
 
+// Separate flashlight blink control (user may want to blink without other features)
+blinkBtn.addEventListener('click', async () => {
+  if (blinkInterval) {
+    stopTorchBlink();
+    blinkBtn.textContent = '💡 Flashlight Blink';
+  } else {
+    await startTorchBlink();
+    blinkBtn.textContent = '💡 Stop Blink';
+  }
+});
+
+// Share location only (WhatsApp) without starting siren
+shareBtn.addEventListener('click', () => {
+  fetchLocationAndShare();
+});
+
+/* Helpful: resume AudioContext on any first page tap if needed (prevents some blocked states) */
+document.addEventListener('click', async function oneTap() {
+  if (audioCtx && audioCtx.state === 'suspended') {
+    try { await audioCtx.resume(); } catch(e){ }
+  }
+  document.removeEventListener('click', oneTap);
+});
+
+</script>
 </body>
     </html>
