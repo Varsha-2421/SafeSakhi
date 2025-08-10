@@ -2,341 +2,68 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
-<title>SafeSakhi — SOS (Upgraded)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+<title>SafeSakhi — Upgraded SOS</title>
 <style>
   :root{
-    --bg:#fff6f6; --card:#fff; --accent:#d61b1b; --dark:#333;
-    --muted:#8a8a8a; --yellow:#f5b400; --graybtn:#e7e7e7;
-    font-family: Inter, system-ui, Arial, sans-serif;
+    --bg:#fff7f6; --card:#ffffff; --accent:#d93025; --dark:#222;
+    --success:#2e7d32; --warn:#f59e0b;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   }
-  body{background:linear-gradient(#fff6f6, #fff); margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh;}
-  .card{width:92%; max-width:420px; background:var(--card); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.08); padding:20px; }
-  h1{color:var(--accent); margin:0 0 6px; font-size:20px}
-  p.lead{color:var(--muted); margin:0 0 16px}
-  button{display:block; width:100%; padding:14px; border-radius:12px; border:0; margin:10px 0; font-size:16px; box-shadow:0 4px 10px rgba(0,0,0,0.06); color:#fff}
-  .btn-sos{background:var(--accent)}
-  .btn-stop{background:#333}
-  .btn-flash{background:var(--yellow); color:#222}
-  .btn-share{background:var(--graybtn); color:#222}
-  .status{margin-top:12px; color:var(--muted); font-size:14px}
-  .small{font-size:13px; color:var(--muted)}
-  .map-link{color:var(--accent); text-decoration:underline}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#fff);color:var(--dark)}
+  .wrap{max-width:420px;margin:16px auto;padding:18px}
+  .card{background:var(--card);border-radius:16px;padding:18px; box-shadow:0 8px 24px rgba(15,15,15,0.06)}
+  h1{margin:0 0 8px;display:flex;gap:8px;align-items:center;font-size:20px}
+  p.lead{margin:6px 0 16px;color:#666;font-size:13px}
+  .btn{display:block;width:100%;padding:16px;border-radius:12px;border:0;font-weight:600;font-size:16px;cursor:pointer}
+  .btn--danger{background:var(--accent);color:#fff;margin-bottom:12px}
+  .btn--dark{background:#333;color:#fff;margin-bottom:12px}
+  .btn--warn{background:var(--warn);color:#111;margin-bottom:12px}
+  .btn--ghost{background:#f3f3f3;color:#222;margin-bottom:12px}
+  .controls{display:grid;gap:10px;margin-top:6px}
+  .status{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .pill{padding:8px 10px;border-radius:10px;background:#f4f4f4;font-weight:600}
+  .small{font-size:13px;color:#555;margin-top:8px}
+  .row{display:flex;gap:8px}
+  .icon{font-size:18px; margin-right:6px}
+  .settings{margin-top:14px}
+  label{display:block;font-size:13px;margin-bottom:6px;color:#333}
+  input[type=text], textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e6e6;font-size:14px}
+  .footer{font-size:12px;color:#777;margin-top:12px}
+  .log{margin-top:10px;background:#fbfbfb;padding:10px;border-radius:8px;font-size:13px;color:#444;max-height:160px;overflow:auto}
+  .hidden{display:none}
+  .flex{display:flex;align-items:center;gap:8px}
 </style>
 </head>
 <body>
+<div class="wrap">
   <div class="card">
     <h1>🚨 SafeSakhi — SOS</h1>
-    <p class="lead">Tap <strong>Activate SOS</strong> to play alarm, fetch location, start recording, and open WhatsApp with a prefilled emergency message. Shake phone to auto-activate.</p>
+    <p class="lead">Tap <strong>Activate SOS</strong> to alert contacts, fetch live location, record audio, and open WhatsApp with a prefilled emergency message. Use Shake to auto-activate.</p>
 
-    <button id="activateSOS" class="btn-sos">📣 Activate SOS</button>
-    <button id="stopAlarm" class="btn-stop">⛔ Stop Alarm</button>
-    <button id="flashBlink" class="btn-flash">💡 Flashlight Blink</button>
-    <button id="shareLocation" class="btn-share">📍 Share Location Only</button>
-
-    <div class="status">
-      <div id="locStatus">📌 Location: Not fetched</div>
-      <div id="sosStatus" style="margin-top:6px">🔴 SOS: Inactive</div>
-      <div id="recStatus" style="margin-top:6px" class="small">🎙️ Recorder: Idle</div>
+    <div class="controls">
+      <button id="activateBtn" class="btn btn--danger">📣 Activate SOS</button>
+      <button id="stopBtn" class="btn btn--dark" disabled>⛔ Stop Alarm</button>
+      <button id="flashBtn" class="btn btn--warn">💡 Flashlight Toggle</button>
+      <button id="shareLocBtn" class="btn btn--ghost">📍 Share Location Only</button>
     </div>
 
-    <p class="small" style="margin-top:12px">Works best on mobile browsers. Some features need permissions (Location, Microphone, Motion). Use HTTPS (GitHub Pages).</p>
-  </div>
+    <div class="status">
+      <div class="pill" id="locStatus">📌 Location: Not fetched</div>
+      <div class="pill" id="sosStatus">🔴 SOS: Inactive</div>
+      <div class="pill" id="recStatus">🎤 Recorder: Idle</div>
+    </div>
 
-<script>
-/* ---------- Globals & DOM ---------- */
-const activateBtn = document.getElementById('activateSOS');
-const stopBtn = document.getElementById('stopAlarm');
-const flashBtn = document.getElementById('flashBlink');
-const shareBtn = document.getElementById('shareLocation');
-const locStatus = document.getElementById('locStatus');
-const sosStatus = document.getElementById('sosStatus');
-const recStatus = document.getElementById('recStatus');
+    <div class="small">
+      <div class="flex" style="margin-top:10px;justify-content:space-between">
+        <div>
+          <label><input type="checkbox" id="silentMode"> Silent Mode (no alarm)</label>
+        </div>
+        <div>
+          <label><input type="checkbox" id="shakeMode" checked> Shake-to-activate</label>
+        </div>
+      </div>
+    </div>
 
-let alarmAudio = null;
-let watchId = null;
-let updatingLocation = false;
-let currentCoords = null;
-let mediaRecorder = null;
-let audioChunks = [];
-let audioStream = null;
-let torchSupported = false;
-let imageCapture = null;
-let torchOn = false;
-let locationIntervalId = null;
-
-/* ---------- Helper utilities ---------- */
-function safeLog(...args){ console.log('[SafeSakhi]', ...args); }
-function fmtCoords(c){ return c ? `${c.latitude.toFixed(6)}, ${c.longitude.toFixed(6)}` : 'Not available'; }
-function mapLink(coords){ return coords ? `https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}` : ''; }
-
-/* ---------- Alarm sound setup ---------- */
-function initAlarm(){
-  if(alarmAudio) return;
-  alarmAudio = new Audio();
-  alarmAudio.src = 'data:audio/mp3;base64,//uQZAAAAAAAAAAAA...'; // tiny placeholder - replace with real alarm or URL
-  // For demo, we'll use an oscillator fallback if audio can't play:
-  alarmAudio.loop = true;
-  alarmAudio.preload = 'auto';
-  alarmAudio.addEventListener('error', ()=> safeLog('Audio error; using vibration fallback'));
-}
-
-/* ---------- Location functions ---------- */
-async function requestLocationPermissions(){
-  if(!navigator.geolocation) throw new Error('Geolocation not supported');
-  // Some browsers require prompt via getCurrentPosition
-  return new Promise((res, rej)=>{
-    navigator.geolocation.getCurrentPosition(position=>{
-      res(position.coords);
-    }, err=>{
-      rej(err);
-    }, {enableHighAccuracy:true, timeout:8000});
-  });
-}
-
-function startContinuousLocationUpdate(intervalSeconds = 15){
-  if(updatingLocation) return;
-  updatingLocation = true;
-  updateLocationOnce();
-  locationIntervalId = setInterval(updateLocationOnce, intervalSeconds*1000);
-  sosStatus.textContent = '🔴 SOS: Active — sharing location every ' + intervalSeconds + 's';
-}
-
-function stopContinuousLocationUpdate(){
-  updatingLocation = false;
-  if(locationIntervalId) clearInterval(locationIntervalId);
-  sosStatus.textContent = '⚪ SOS: Inactive';
-}
-
-function updateLocationOnce(){
-  if(!navigator.geolocation) { locStatus.textContent = '📌 Location: Not supported'; return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    currentCoords = pos.coords;
-    locStatus.innerHTML = `📌 Location: ${fmtCoords(currentCoords)} — <a class="map-link" href="${mapLink(currentCoords)}" target="_blank">Open Map</a>`;
-    safeLog('Location updated', currentCoords);
-  }, err=>{
-    locStatus.textContent = '📌 Location: Permission denied or unavailable';
-    safeLog('Location error', err);
-  }, {enableHighAccuracy:true, maximumAge:5000});
-}
-
-/* ---------- WhatsApp share (opens compose screen only) ---------- */
-function openWhatsAppWithLocation(customMsg = ''){
-  if(!currentCoords){
-    alert('Location not fetched yet. Try again in a few seconds.');
-    return;
-  }
-  const text = encodeURIComponent(`${customMsg}\nMy location: ${mapLink(currentCoords)}\nCoordinates: ${fmtCoords(currentCoords)}`);
-  // using wa.me to open WhatsApp with prefilled message
-  const waUrl = `https://wa.me/?text=${text}`;
-  window.open(waUrl, '_blank');
-}
-
-/* ---------- Audio recording ---------- */
-async function startAudioRecording(){
-  if(mediaRecorder) return;
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    recStatus.textContent = '🎙️ Recorder: Not supported';
-    return;
-  }
-  try{
-    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(audioStream);
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.onstop = () => {
-      recStatus.textContent = '🎙️ Recorder: Stopped — saved locally';
-      // Save blob and offer to download automatically (optional)
-      const blob = new Blob(audioChunks, { type: 'audio/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `sos_record_${Date.now()}.webm`;
-      a.style.display = 'none'; document.body.appendChild(a); a.click(); a.remove();
-      safeLog('Recording saved', blob);
-    };
-    mediaRecorder.start();
-    recStatus.textContent = '🎙️ Recorder: Recording...';
-  }catch(err){
-    recStatus.textContent = '🎙️ Recorder: Permission denied';
-    safeLog('Rec start error', err);
-  }
-}
-
-function stopAudioRecording(){
-  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  if(audioStream){
-    audioStream.getTracks().forEach(t=>t.stop());
-    audioStream = null;
-  }
-  mediaRecorder = null;
-}
-
-/* ---------- Torch control (ImageCapture API) ---------- */
-async function initTorch(){
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    const track = stream.getVideoTracks()[0];
-    try{
-      imageCapture = new ImageCapture(track);
-      const capabilities = await track.getCapabilities();
-      torchSupported = !!(capabilities && capabilities.torch);
-      safeLog('Torch supported?', torchSupported, capabilities);
-      // keep stream but stop track later if not used
-      // Do not stop track here; we'll reuse it for toggling
-      window._torchTrack = track; // store globally
-    }catch(e){
-      safeLog('ImageCapture not available', e);
-    }
-  }catch(err){
-    safeLog('Torch init error', err);
-  }
-}
-
-async function toggleTorch(){
-  const track = window._torchTrack;
-  if(!track) { alert('Torch not available on this device/browser'); return; }
-  try{
-    torchOn = !torchOn;
-    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
-    flashBtn.textContent = torchOn ? '💡 Flashlight On — Tap to Stop' : '💡 Flashlight Blink';
-  }catch(err){
-    safeLog('Torch toggle failed', err);
-    alert('Toggle torch failed. This feature works on some Android Chrome browsers only.');
-  }
-}
-
-/* ---------- Vibrate Pattern (fallback alarm) ---------- */
-function startVibratePattern(){
-  if(navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
-}
-
-/* ---------- SOS start/stop logic ---------- */
-async function startSOS(){
-  initAlarm();
-  // Try starting alarm audio
-  try{
-    await alarmAudio.play();
-  }catch(e){
-    safeLog('Audio play failed; fallback vibration', e);
-    startVibratePattern();
-  }
-  sosStatus.textContent = '🔴 SOS: Active';
-  // request location once and then start continuous updates
-  try{
-    await requestLocationPermissions();
-    startContinuousLocationUpdate(15); // every 15s
-  }catch(e){
-    locStatus.textContent = '📌 Location: Permission denied / unavailable';
-    safeLog('Location permission error', e);
-  }
-  // Start audio recording
-  await startAudioRecording();
-  // Open WhatsApp compose with current link after a small delay (so location fetch has chance)
-  setTimeout(()=> openWhatsAppWithLocation('Emergency! I need help — SafeSakhi SOS'), 3000);
-}
-
-function stopSOS(){
-  if(alarmAudio){
-    alarmAudio.pause();
-    try{ alarmAudio.currentTime = 0; }catch(e){}
-  }
-  stopContinuousLocationUpdate();
-  stopAudioRecording();
-  sosStatus.textContent = '⚪ SOS: Inactive';
-  locStatus.textContent = currentCoords ? `📌 Location: ${fmtCoords(currentCoords)} — <a class="map-link" href="${mapLink(currentCoords)}" target="_blank">Open Map</a>` : '📌 Location: Not fetched';
-}
-
-/* ---------- Shake detection (DeviceMotion) ---------- */
-let shakeWatch = null;
-function initShakeToSOS(){
-  if('DeviceMotionEvent' in window){
-    let last = {x:null,y:null,z:null, t:0};
-    window.addEventListener('devicemotion', ev=>{
-      const acc = ev.accelerationIncludingGravity;
-      if(!acc) return;
-      const now = Date.now();
-      if(last.x !== null && (now - last.t) > 300){
-        const dx = Math.abs(acc.x - last.x);
-        const dy = Math.abs(acc.y - last.y);
-        const dz = Math.abs(acc.z - last.z);
-        if((dx + dy + dz) > 30){ // threshold; tweak for sensitivity
-          safeLog('Shake detected', dx,dy,dz);
-          if(!updatingLocation){
-            const confirmShake = confirm('Shake detected. Activate SOS?');
-            if(confirmShake) startSOS();
-          }
-        }
-      }
-      last = {x:acc.x,y:acc.y,z:acc.z,t:now};
-    });
-  } else {
-    safeLog('DeviceMotion not supported');
-  }
-}
-
-/* ---------- UI event bindings ---------- */
-activateBtn.addEventListener('click', async ()=>{
-  // Request permissions explicitly where possible
-  try{
-    // Ask for notification permission (optional)
-    if('Notification' in window && Notification.permission === 'default'){
-      Notification.requestPermission().then(p => safeLog('Notification perm', p));
-    }
-    // Ask for motion permission on iOS 13+ if needed
-    if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
-      try{
-        const perm = await DeviceMotionEvent.requestPermission();
-        safeLog('Device motion permission', perm);
-      }catch(e){ safeLog('DevMotion perm error', e); }
-    }
-    await startSOS();
-  }catch(err){
-    alert('Could not activate SOS: ' + (err.message || err));
-    safeLog('Activate error', err);
-  }
-});
-
-stopBtn.addEventListener('click', ()=> stopSOS());
-
-shareBtn.addEventListener('click', async ()=>{
-  try{
-    await updateLocationOnce();
-    await new Promise(resolve => setTimeout(resolve, 800)); // wait for update
-    openWhatsAppWithLocation('Please come — my location:');
-  }catch(e){
-    alert('Could not fetch/share location: ' + e.message);
-  }
-});
-
-flashBtn.addEventListener('click', async ()=>{
-  // Try toggling torch — if not supported, blink screen as fallback
-  if(!torchSupported){
-    // On first try, attempt to init torch
-    await initTorch();
-    if(!torchSupported){
-      // fallback: blink background quickly
-      let i = 0;
-      const blink = setInterval(()=> {
-        document.body.style.background = (i%2===0) ? '#fff' : '#ffd';
-        i++;
-        if(i>7){ clearInterval(blink); document.body.style.background = ''; flashBtn.textContent='💡 Flashlight Blink'; }
-      }, 300);
-      return;
-    }
-  }
-  // If we reach here, toggle torch
-  toggleTorch();
-});
-
-/* ---------- Init on load ---------- */
-(async function init(){
-  initAlarm();
-  // Try to init torch capability in background (may prompt camera permission)
-  try{ await initTorch(); }catch(e){ safeLog('Torch init failed', e); }
-  initShakeToSOS();
-  safeLog('SafeSakhi initialized');
-})();
-</script>
-</body>
-</html>
+    <div class="settings">
+      <label for="contacts">
