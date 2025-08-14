@@ -5,7 +5,6 @@
 ### 🌟 Features
 - 🔒 SOS Button for quick emergency alerts
 - 📍 Live Location Sharing
-- 🌐 Multilingual Support (local languages)
 - 🛡️ Safety Tips and Resources
 - 🔔 Real-time Notifications
 - 🧭 Integrated Map Access
